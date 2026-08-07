@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regresión Lineal Simple - Celsius a Fahrenheit</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 16px;
+            color: #1f2937;
+        }
+        .card {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+        }
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+        .subtitle { color: #6b7280; margin-bottom: 24px; font-size: 14px; }
+        .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+        .badge {
+            background: #eef2ff; color: #4338ca; padding: 6px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+        .card {
+            background: #f9fafb; border: 1px solid #e5e7eb;
+            border-radius: 14px; padding: 20px;
+        }
+        .card h2 { font-size: 15px; margin-bottom: 14px; color: #374151; }
+        .formula {
+            background: #1f2937; color: #4ade80; font-family: 'Consolas','Monaco',monospace;
+            padding: 16px; border-radius: 10px; font-size: 18px; text-align: center;
+            margin-bottom: 16px;
+        }
+        dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
+        dt { font-weight: 600; color: #374151; }
+        dd { color: #6b7280; }
+        .stats { display: flex; gap: 12px; margin-top: 16px; }
+        .stat {
+            flex: 1; background: #fff; border: 1px solid #e5e7eb;
+            border-radius: 10px; padding: 12px; text-align: center;
+        }
+        .stat .val { font-size: 20px; font-weight: 700; color: #4338ca; }
+        .stat .label { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .predictor { display: flex; gap: 10px; margin-top: 12px; }
+        input[type=number] {
+            flex: 1; padding: 10px 14px; border: 1px solid #d1d5db;
+            border-radius: 8px; font-size: 15px; outline: none;
+        }
+        input[type=number]:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.2); }
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff; border: none; padding: 10px 20px; border-radius: 8px;
+            font-weight: 600; cursor: pointer; transition: transform 0.15s;
+        }
+        button:hover { transform: translateY(-2px); }
+        .result { margin-top: 16px; font-size: 22px; font-weight: 700; text-align: center; color: #374151; }
+        .result span { color: #4338ca; }
+        .chart-wrap { position: relative; height: 320px; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+        th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        th { color: #6b7280; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Regresión Lineal Simple</h1>
+        <p class="subtitle">Conversión de temperatura: <b>Celsius → Fahrenheit</b> con Machine Learning</p>
+
+        <div class="badges">
+            <span class="badge">scikit-learn</span>
+            <span class="badge">LinearRegression</span>
+            <span class="badge">2 parámetros</span>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Fórmula aprendida</h2>
+                <div class="formula" id="formula">F = m · C + b</div>
+                <dl>
+                    <dt>Pendiente (m):</dt><dd id="m">—</dd>
+                    <dt>Intercepto (b):</dt><dd id="b">—</dd>
+                </dl>
+                <div class="stats">
+                    <div class="stat"><div class="val" id="mse">—</div><div class="label">Error MSE</div></div>
+                    <div class="stat"><div class="val" id="r2">—</div><div class="label">R²</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Predicción interactiva</h2>
+                <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Ingresa una temperatura en grados Celsius:</p>
+                <div class="predictor">
+                    <input type="number" id="celsius" placeholder="Ej: 100">
+                    <button id="btnPredecir">Predecir</button>
+                </div>
+                <div class="result" id="resultado">—</div>
+            </div>
+        </div>
+
+        <div class="chart-wrap">
+            <canvas id="chart"></canvas>
+        </div>
+
+        <div class="card" style="margin-top:24px;">
+            <h2>Datos de entrenamiento</h2>
+            <table>
+                <thead>
+                    <tr><th>Celsius (°C)</th><th>Real (°F)</th><th>Predicho (°F)</th><th>Error</th></tr>
+                </thead>
+                <tbody id="tabla"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Datos de entrenamiento
+        const X = [-5, 0, 10, 20, 30];
+        const y = [23, 32, 50, 68, 86];
+
+        // Regresión lineal por mínimos cuadrados
+        const n = X.length;
+        const meanX = X.reduce((a, b) => a + b) / n;
+        const meanY = y.reduce((a, b) => a + b) / n;
+        let num = 0, den = 0;
+        for (let i = 0; i < n; i++) {
+            num += (X[i] - meanX) * (y[i] - meanY);
+            den += (X[i] - meanX) ** 2;
+        }
+        const m = num / den;
+        const b = meanY - m * meanX;
+
+        // Predicciones y métricas
+        const yPred = X.map(x => m * x + b);
+        const mse = yPred.reduce((acc, p, i) => acc + (y[i] - p) ** 2, 0) / n;
+        const ssTot = y.reduce((acc, yi) => acc + (yi - meanY) ** 2, 0);
+        const ssRes = y.reduce((acc, yi, i) => acc + (yi - yPred[i]) ** 2, 0);
+        const r2 = 1 - ssRes / ssTot;
+
+        // Mostrar valores
+        document.getElementById('m').textContent = m.toFixed(4);
+        document.getElementById('b').textContent = b.toFixed(4);
+        document.getElementById('mse').textContent = mse.toFixed(4);
+        document.getElementById('r2').textContent = r2.toFixed(4);
+        document.getElementById('formula').textContent = `F = ${m.toFixed(4)} · C + ${b.toFixed(4)}`;
+
+        // Tabla
+        const tbody = document.getElementById('tabla');
+        y.forEach((val, i) => {
+            tbody.innerHTML += `<tr>
+                <td>${X[i]} °C</td>
+                <td>${val} °F</td>
+                <td>${yPred[i].toFixed(2)} °F</td>
+                <td>${(val - yPred[i]).toFixed(4)}</td>
+            </tr>`;
+        });
+
+        // Gráfica
+        const ctx = document.getElementById('chart').getContext('2d');
+        const minX = -10, maxX = 40;
+        const lineX = [minX, maxX];
+        const lineY = lineX.map(x => m * x + b);
+        new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Datos reales',
+                        data: X.map((x, i) => ({ x, y: y[i] })),
+                        backgroundColor: '#764ba2',
+                        pointRadius: 6
+                    },
+                    {
+                        type: 'line',
+                        label: `Regresión: F = ${m.toFixed(2)}·C + ${b.toFixed(2)}`,
+                        data: lineX.map((x, i) => ({ x, y: lineY[i] })),
+                        borderColor: '#667eea',
+                        backgroundColor: 'transparent',
+                        pointRadius: 0,
+                        borderWidth: 3,
+                        tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    x: { title: { display: true, text: 'Celsius (°C)' } },
+                    y: { title: { display: true, text: 'Fahrenheit (°F)' } }
+                }
+            }
+        });
+
+        // Predicción
+        function predict() {
+            const raw = document.getElementById('celsius').value.replace(',', '.');
+            if (raw.trim() === '') { document.getElementById('resultado').innerHTML = 'Escribe un valor en °C'; return; }
+            const c = parseFloat(raw);
+            if (isNaN(c)) { document.getElementById('resultado').innerHTML = 'Ingresa un valor válido'; return; }
+            const f = m * c + b;
+            document.getElementById('resultado').innerHTML = `${c} °C = <span>${f.toFixed(2)} °F</span>`;
+        }
+        document.getElementById('celsius').value = 100;
+        document.getElementById('btnPredecir').addEventListener('click', predict);
+        predict();
+    </script>
+</body>
+</html>

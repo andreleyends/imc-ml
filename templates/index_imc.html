@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de IMC con ML</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+        }
+        .card {
+            background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 460px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+        h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+        .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+        .badge-ml {
+            display: inline-block; background: #fbbf24; color: #78350f; padding: 6px 14px;
+            border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 20px;
+        }
+        .campo { margin-bottom: 16px; }
+        .campo label { display: block; font-weight: 600; color: #374151; font-size: 14px; margin-bottom: 6px; }
+        .campo .input-group { display: flex; align-items: center; }
+        .campo input {
+            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
+            font-size: 16px; outline: none;
+        }
+        .campo input:focus { border-color: #f59e0b; }
+        .campo .unidad { margin-left: 10px; color: #6b7280; font-weight: 600; }
+        .select-grupo { display: flex; gap: 10px; margin-bottom: 16px; }
+        .select-grupo select {
+            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
+            font-size: 15px; background: #fff; outline: none;
+        }
+        button {
+            width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
+            border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 18px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(245,158,11,0.35); }
+        .resultado {
+            text-align: center; padding: 20px; border-radius: 14px; background: #f9fafb;
+            border: 1px solid #e5e7eb; display: none;
+        }
+        .resultado .valor { font-size: 40px; font-weight: 800; }
+        .resultado .clasificacion { font-size: 17px; font-weight: 700; margin-top: 4px; }
+        .resultado .detalle { font-size: 13px; color: #6b7280; margin-top: 8px; }
+        .metricas {
+            margin-top: 16px; display: flex; gap: 12px;
+        }
+        .metrica { flex: 1; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 10px; text-align: center; }
+        .metrica .v { font-size: 18px; font-weight: 800; color: #92400e; }
+        .metrica .l { font-size: 11.5px; color: #92623e; margin-top: 2px; }
+        .error { color: #dc2626; font-size: 13px; margin-bottom: 12px; display: none; text-align: center; }
+        .carga { font-size: 13px; color: #6b7280; text-align: center; margin-bottom: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Calculadora de IMC</h1>
+        <p class="subtitle">Índice de Masa Corporal con <b>Machine Learning</b></p>
+        <span class="badge-major">🤖 Modelo de ML entrenado con datos</span>
+
+        <div class="campo">
+            <label for="peso">Peso</label>
+            <div class="input-group">
+                <input type="number" id="peso" step="0.1" placeholder="Ej: 70">
+                <span class="unidad">kg</span>
+            </div>
+        </div>
+
+        <div class="select-grupo">
+            <select id="unidadAltura">
+                <option value="cm">Centímetros (cm)</option>
+                <option value="m">Metros (m)</option>
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="altura">Altura</label>
+            <div class="input-group">
+                <input type="number" id="altura" step="0.01" placeholder="Ej: 175">
+                <span class="unidad" id="unidadLabel">cm</span>
+            </div>
+        </div>
+
+        <button id="btnCalcular">Calcular con IA</button>
+
+        <div class="carga" id="carga">Calculando con el modelo de ML...</div>
+        <div class="error" id="error"></div>
+
+        <div class="resultado" id="resultado">
+            <div class="valor" id="valor">—</div>
+            <div class="clasificacion" id="clasificacion"></div>
+            <div class="detalle" id="detalle">Predicción generada por el modelo de Machine Learning.</div>
+        </div>
+
+        <div class="metricas" id="containerMetrics">
+            <p style="font-size:12px;color:#6b7280;margin-bottom:6px;">Calidad del modelo (sobre datos de entrenamiento):</p>
+            <div class="metricas">
+                <div class="metrica"><div class="v" id="r2">{{ r2 }}</div><div class="l">R²</div></div>
+                <div class="metrica"><div class="v" id="rmse">{{ rmse }}</div><div class="l">RMSE</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const unidadAltura = document.getElementById('unidadAltura');
+        const unidadLabel = document.getElementById('unidadLabel');
+        const alturaInput = document.getElementById('altura');
+
+        unidadAltura.addEventListener('change', () => {
+            const esCm = unidadAltura.value === 'cm';
+            unidadLabel.textContent = esCm ? 'cm' : 'm';
+            if (esCm) { alturaInput.step = '1'; alturaInput.placeholder = 'Ej: 175'; }
+            else { alturaInput.step = '0.01'; alturaInput.placeholder = 'Ej: 1.75'; }
+        });
+
+        document.getElementById('btnCalcular').addEventListener('click', calcular);
+
+        async function calcular() {
+            const errorBox = document.getElementById('error');
+            const carga = document.getElementById('carga');
+            errorBox.style.display = 'none';
+            carga.style.display = 'block';
+
+            const peso = parseFloat(document.getElementById('peso').value.replace(',', '.'));
+            let altura = parseFloat(alturaInput.value.replace(',', '.'));
+
+            if (isNaN(peso) || isNaN(altura) || peso <= 0 || altura <= 0) {
+                carga.style.display = 'none';
+                errorBox.textContent = 'Ingresa valores válidos y mayores que 0.';
+                errorBox.style.display = 'block';
+                return;
+            }
+            if (document.getElementById('unidadAltura').value === 'cm') altura = altura / 100;
+
+            try {
+                const res = await fetch('/api/calcular', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ peso, altura })
+                });
+                const data = await res.json();
+                carga.style.display = 'none';
+                if (data.error) { errorBox.textContent = data.error; errorBox.style.display = 'block'; return; }
+
+                document.getElementById('resultado').style.display = 'block';
+                document.getElementById('valor').textContent = data.imc.toFixed(2);
+                document.getElementById('valor').style.color = data.color;
+                const cls = document.getElementById('clasificacion');
+                cls.textContent = data.clasificacion;
+                cls.style.color = data.color;
+                document.getElementById('detalle').textContent = `Predicción de ML usando peso ${peso} kg y altura ${altura.toFixed(2)} m.`;
+            } catch (e) {
+                carga.style.display = 'none';
+                errorBox.textContent = 'Error al conectar con el servidor de Python.';
+                errorBox.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

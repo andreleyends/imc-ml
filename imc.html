@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de IMC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.35);
+        }
+        h1 { font-size: 28px; font-weight: 800; color: #134e4a; margin-bottom: 4px; }
+        .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+        .formula {
+            background: #ecfdf5; border: 1px solid #a7f3d0;
+            color: #065f46; border-radius: 12px; padding: 14px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 17px; text-align: center; margin-bottom: 24px;
+        }
+        .campo { margin-bottom: 18px; }
+        .campo label { display: block; font-weight: 600; color: #374151; font-size: 14px; margin-bottom: 6px; }
+        .campo .input-group { display: flex; align-items: center; }
+        .campo input {
+            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb;
+            border-radius: 10px; font-size: 16px; outline: none; transition: border-color 0.2s;
+        }
+        .campo input:focus { border-color: #0d9488; }
+        .campo .unidad { margin-left: 10px; color: #6b7280; font-weight: 600; }
+        .select-grupo { display: flex; gap: 10px; margin-bottom: 18px; }
+        .select-grupo select {
+            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb;
+            border-radius: 10px; font-size: 15px; background: #fff; outline: none;
+        }
+        button {
+            width: 100%; background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: #fff; border: none; padding: 14px; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 18px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(13,148,136,0.3); }
+        .resultado {
+            text-align: center; padding: 20px; border-radius: 14px;
+            background: #f9fafb; border: 1px solid #e5e7eb; display: none;
+        }
+        .resultado .valor { font-size: 40px; font-weight: 800; color: #134e4a; }
+        .resultado .clasificacion { font-size: 17px; font-weight: 700; margin-top: 4px; }
+        .resultado .detalle { font-size: 13px; color: #6b7280; margin-top: 8px; }
+        .categoria { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px; }
+        .categoria .cat { padding: 8px 10px; border-radius: 8px; text-align: center; font-weight: 600; }
+        .error { color: #dc2626; font-size: 13px; margin-bottom: 12px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Calculadora de IMC</h1>
+        <p class="subtitle">Índice de Masa Corporal — método tradicional</p>
+
+        <div class="formula">IMC = Peso (kg) ÷ Altura² (m)</div>
+
+        <div class="campo">
+            <label for="peso">Peso</label>
+            <div class="input-group">
+                <input type="number" id="peso" step="0.1" placeholder="Ej: 70">
+                <span class="unidad">kg</span>
+            </div>
+        </div>
+
+        <div class="select-grupo">
+            <select id="unidadAltura">
+                <option value="m">Metros (m)</option>
+                <option value="cm">Centímetros (cm)</option>
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="altura">Altura</label>
+            <div class="input-group">
+                <input type="number" id="altura" step="0.01" placeholder="Ej: 1.75">
+                <span class="unidad" id="unidadLabel">m</span>
+            </div>
+        </div>
+
+        <button id="btnCalcular">Calcular IMC</button>
+
+        <div class="error" id="error"></div>
+
+        <div class="resultado" id="resultado">
+            <div class="valor" id="valor">—</div>
+            <div class="clasificacion" id="clasificacion"></div>
+            <div class="detalle" id="detalle"></div>
+        </div>
+
+        <div class="categoria">
+            <div class="cat" style="background:#dbeafe;color:#1e40af;">Bajo: &lt; 18.5</div>
+            <div class="cat" style="background:#d1fae5;color:#065f46;">Normal: 18.5–24.9</div>
+            <div class="cat" style="background:#fef3c7;color:#92400e;">Sobrepeso: 25–29.9</div>
+            <div class="cat" style="background:#fee2e2;color:#991b1b;">Obesidad: ≥ 30</div>
+        </div>
+    </div>
+
+    <script>
+        const unidadAltura = document.getElementById('unidadAltura');
+        const unidadLabel = document.getElementById('unidadLabel');
+        const alturaInput = document.getElementById('altura');
+        const pesoInput = document.getElementById('peso');
+        const errorBox = document.getElementById('error');
+        const resultadoBox = document.getElementById('resultado');
+
+        unidadAltura.addEventListener('change', () => {
+            const esCm = unidadAltura.value === 'cm';
+            unidadLabel.textContent = esCm ? 'cm' : 'm';
+            if (esCm) { alturaInput.step = '1'; alturaInput.placeholder = 'Ej: 175'; }
+            else { alturaInput.step = '0.01'; alturaInput.placeholder = 'Ej: 1.75'; }
+        });
+
+        function calcular() {
+            errorBox.style.display = 'none';
+            const peso = parseFloat(pesoInput.value.replace(',', '.'));
+            let altura = parseFloat(alturaInput.value.replace(',', '.'));
+
+            if (isNaN(peso) || isNaN(altura) || peso <= 0 || altura <= 0) {
+                errorBox.textContent = 'Ingresa valores válidos y mayores que 0.';
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            if (unidadAltura.value === 'cm') altura = altura / 100;
+
+            const imc = peso / (altura * altura);
+
+            const valor = document.getElementById('valor');
+            const clasificacion = document.getElementById('clasificacion');
+            const detalle = document.getElementById('detalle');
+
+            valor.textContent = imc.toFixed(2);
+
+            let cat, color;
+            if (imc < 18.5) { cat = 'Bajo peso'; color = '#1e40af'; }
+            else if (imc < 25) { cat = 'Peso normal'; color = '#065f46'; }
+            else if (imc < 30) { cat = 'Sobrepeso'; color = '#92400e'; }
+            else { cat = 'Obesidad'; color = '#991b1b'; }
+
+            clasificacion.textContent = cat;
+            clasificacion.style.color = color;
+            detalle.textContent = `Cálculo: ${peso} ÷ (${altura.toFixed(2)} × ${altura.toFixed(2)}) = ${imc.toFixed(2)}`;
+
+            resultadoBox.style.display = 'block';
+        }
+
+        document.getElementById('btnCalcular').addEventListener('click', calcular);
+    </script>
+</body>
+</html>

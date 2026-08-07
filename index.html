@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Proyectos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .container { max-width: 800px; width: 100%; text-align: center; }
+        h1 { color: #f8fafc; font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+        .subtitle { color: #94a3b8; margin-bottom: 36px; font-size: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        a {
+            display: block; text-decoration: none; color: #f8fafc;
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 18px; padding: 30px 22px;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+        }
+        a:hover {
+            transform: translateY(-4px);
+            border-color: #38bdf8;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .emoji { font-size: 40px; margin-bottom: 12px; }
+        .titulo { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .desc { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+        .tag {
+            display: inline-block; margin-top: 14px; padding: 5px 14px;
+            border-radius: 20px; font-size: 12px; font-weight: 600;
+        }
+        .tag-imc { background: #064e3b; color: #6ee7b7; }
+        .tag-reg { background: #1e1b4b; color: #a5b4fc; }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Mis Proyectos Web</h1>
+        <p class="subtitle">Selecciona una aplicación</p>
+        <div class="grid">
+            <a href="imc.html">
+                <div class="emoji">⚖️</div>
+                <div class="titulo">Calculadora de IMC</div>
+                <div class="desc">Calcula tu Índice de Masa Corporal con altura y peso. Método tradicional: IMC = peso ÷ altura².</div>
+                <span class="style tag-immediario">Peso y altura</span>
+            </a>
+            <a href="regresion.html">
+                <div class="emoji">📈</div>
+                <div class="titulo">Regresión Lineal</div>
+                <div class="desc">Conversión de Celsius a Fahrenheit con regresión lineal simple (Machine Learning).</div>
+                <span class="tag tag-reg">ML · scikit-learn</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

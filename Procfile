@@ -1,0 +1,1 @@
+web: gunicorn app_imc:app --timeout 180 --workers 1
