@@ -46,6 +46,11 @@ def api_estado():
     return jsonify(estado_modelo())
 
 
+@app.route("/api/datos")
+def api_datos():
+    return jsonify({"ejemplos": imc_modelo.listar_ejemplos()})
+
+
 @app.route("/api/calcular", methods=["POST"])
 def calcular():
     data = request.get_json(silent=True) or {}

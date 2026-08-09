@@ -54,6 +54,15 @@ def aprender_de_uso(peso, altura):
     return entrenar()
 
 
+def listar_ejemplos():
+    """Devuelve los ejemplos guardados como lista de dicts para mostrarlos."""
+    pesos, alturas, imcs = cargar_ejemplos()
+    return [
+        {"peso": round(p, 2), "altura": round(a, 3), "imc": round(i, 2)}
+        for p, a, i in zip(pesos, alturas, imcs)
+    ]
+
+
 def entrenar():
     """Entrena el modelo con los ejemplos guardados. Si no hay datos, el modelo queda vacío."""
     global modelo, X, y

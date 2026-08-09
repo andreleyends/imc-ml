@@ -100,6 +100,15 @@
             display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
             width: 20px; height: 20px; border-radius: 50%; background: #ecfdf5; color: #059669; font-weight: 800; font-size: 12px;
         }
+        .datos-guardados { margin-top: 20px; }
+        .datos-guardados h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .tabla-datos { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tabla-datos th, .tabla-datos td {
+            padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--borde);
+        }
+        .tabla-datos th { background: var(--claro); color: var(--texto); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .tabla-datos tr:last-child td { border-bottom: none; }
+        .tabla-datos .vacio { text-align: center; color: var(--texto); padding: 18px 0; }
         .estado {
             margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--borde);
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;
@@ -193,6 +202,16 @@
                 </div>
             </div>
 
+            <div class="datos-guardados">
+                <h2>🗄️ Datos guardados <span id="contadorDatos" style="color:var(--texto);font-size:13px;font-weight:500;"></span></h2>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr><th>#</th><th>Peso (kg)</th><th>Altura (m)</th><th>IMC</th></tr>
+                    </thead>
+                    <tbody id="tablaDatos"></tbody>
+                </table>
+            </div>
+
             <div class="placeholder-result" id="placeholderResult" style="text-align:center;padding:60px 10px;color:var(--texto);">
                 <div style="font-size:44px;margin-bottom:12px;">📊</div>
                 <div style="font-weight:700;color:var(--tinta);">Aún no hay resultados</div>
@@ -251,6 +270,25 @@
             document.getElementById('r2').textContent = e.r2 ?? '—';
             document.getElementById('rmse').textContent = e.rmse ?? '—';
             document.getElementById('gConfianza').textContent = e.confianza != null ? e.confianza : '—';
+        }
+
+        async function cargarDatos() {
+            try {
+                const res = await fetch('/api/datos');
+                const data = await res.json();
+                const ejemplos = data.ejemplos || [];
+                document.getElementById('contadorDatos').textContent = `(${ejemplos.length})`;
+                const cuerpo = document.getElementById('tablaDatos');
+                if (!ejemplos.length) {
+                    cuerpo.innerHTML = '<tr><td colspan="4" class="vacio">Aún no hay datos guardados.</td></tr>';
+                    return;
+                }
+                cuerpo.innerHTML = ejemplos.map((e, i) =>
+                    `<tr><td>${i + 1}</td><td>${e.peso}</td><td>${e.altura}</td><td>${e.imc}</td></tr>`
+                ).join('');
+            } catch (e) {
+                /* sin conexión: se ignora */
+            }
         }
 
         function colorBarra(conf) {
@@ -322,6 +360,7 @@
                 }
 
                 await actualizarEstado();
+                cargarDatos();
             } catch (e) {
                 carga.style.display = 'none';
                 mostrarError('Error al conectar con el servidor.');
@@ -330,6 +369,7 @@
 
         document.getElementById('btnCalcular').addEventListener('click', calcular);
         actualizarEstado();
+        cargarDatos();
     </script>
 </body>
 </html>
