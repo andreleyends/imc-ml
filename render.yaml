@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: imc-ml
+    runtime: python
+    repo: https://github.com/andreleyends/imc-ml
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app_imc:app --timeout 180 --workers 1
+    healthCheckPath: /api/estado

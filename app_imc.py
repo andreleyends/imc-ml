@@ -1,52 +1,96 @@
 from flask import Flask, request, jsonify, render_template
 import os
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
 
-from imc_modelo import generar_datos
+import imc_modelo
 
 app = Flask(__name__)
 
-# ---------- ENTRENAMIENTO DEL MODELO (ML) ----------
-X, y = generar_datos(n=20000)
-modelo = RandomForestRegressor(n_estimators=120, random_state=42, n_jobs=-1)
-modelo.fit(X, y)
-
-# Muestras de evaluación (fuera, no usadas tras entrenar)
-pred = modelo.predict(X)
-rmse = float(np.sqrt(np.mean((y - pred) ** 2)))
-r2 = float(1 - np.sum((y - pred) ** 2) / np.sum((y - np.mean(y)) ** 2))
-print(f"[ML] Modelo entrenado. RMSE={rmse:.3f}, R2={r2:.4f}")
+# ---------- CARGA INICIAL DEL MODELO (aprende de usuarios reales) ----------
+entrenado_inicial = imc_modelo.entrenar()
+if entrenado_inicial:
+    r2_i, rmse_i = imc_modelo.metricas()
+    print(f"[ML] Modelo cargado con {imc_modelo.numero_ejemplos()} ejemplos reales. "
+          f"R2={r2_i if r2_i is None else round(r2_i, 4)}, RMSE={rmse_i if rmse_i is None else round(rmse_i, 3)}")
+else:
+    print("[ML] El modelo aún no ha aprendido: esperando datos reales de usuarios.")
 
 
-def clasificar(imc):
-    if imc < 18.5:
-        return "Bajo peso", "#1e40af"
-    if imc < 25:
-        return "Peso normal", "#065f46"
-    if imc < 30:
-        return "Sobrepeso", "#92400e"
-    return "Obesidad", "#991b1b"
+def cargar_float(datos, clave):
+    val = datos.get(clave)
+    if val in (None, ""):
+        return None
+    try:
+        return float(str(val).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def estado_modelo():
+    r2, rmse = imc_modelo.metricas()
+    return {
+        "entrenado": imc_modelo.modelo is not None,
+        "ejemplos": imc_modelo.numero_ejemplos(),
+        "r2": round(r2, 4) if r2 is not None else None,
+        "rmse": round(rmse, 3) if rmse is not None else None,
+        "confianza": imc_modelo.confianza_global(),
+    }
 
 
 @app.route("/")
 def home():
-    return render_template("index_imc.html", rmse=round(rmse, 3), r2=round(r2, 4))
+    return render_template("index_imc.html", estado=estado_modelo())
+
+
+@app.route("/api/estado")
+def api_estado():
+    return jsonify(estado_modelo())
 
 
 @app.route("/api/calcular", methods=["POST"])
 def calcular():
-    data = request.get_json()
-    peso = float(data.get("peso"))
-    altura = float(data.get("altura"))  # en metros
+    data = request.get_json(silent=True) or {}
+    peso = cargar_float(data, "peso")
+    altura = cargar_float(data, "altura")
 
-    if not (peso > 0 and altura > 0):
-        return jsonify({"error": "Valores inválidos"}), 400
+    if not (peso and altura and peso > 0 and altura > 0):
+        return jsonify({"error": "Ingresa peso y altura válidos y mayores que 0."}), 400
 
-    entrada = np.array([[peso, altura]])
-    imc = float(modelo.predict(entrada)[0])
-    clas, color = clasificar(imc)
-    return jsonify({"imc": round(imc, 2), "clasificacion": clas, "color": color})
+    imc, confianza = imc_modelo.predecir_con_confianza(peso, altura)
+    if imc is None:
+        return jsonify({
+            "error": "El modelo aún no ha aprendido. Usa 'Enseñar al modelo' con tu IMC real para entrenarlo."
+        }), 409
+
+    clas, color = imc_modelo.clasificar(imc)
+    confianza = min(confianza, 99) if confianza is not None else None
+    return jsonify({
+        "imc": round(imc, 2),
+        "clasificacion": clas,
+        "color": color,
+        "confianza": confianza,
+        "recomendaciones": imc_modelo.recomendaciones(clas),
+    })
+
+
+@app.route("/api/aprender", methods=["POST"])
+def aprender():
+    data = request.get_json(silent=True) or {}
+    peso = cargar_float(data, "peso")
+    altura = cargar_float(data, "altura")
+    imc_real = cargar_float(data, "imc_real")
+
+    if not (peso and altura and imc_real and peso > 0 and altura > 0 and imc_real > 0):
+        return jsonify({"error": "Ingresa peso, altura e IMC real válidos y mayores que 0."}), 400
+
+    imc_modelo.guardar_ejemplo(peso, altura, imc_real)
+    imc_modelo.entrenar()
+
+    r2, rmse = imc_modelo.metricas()
+    estado = estado_modelo()
+    estado["r2"] = round(r2, 4) if r2 is not None else None
+    estado["rmse"] = round(rmse, 3) if rmse is not None else None
+    estado["mensaje"] = "¡Dato aprendido! El modelo ahora sabe algo más sobre ti."
+    return jsonify(estado)
 
 
 if __name__ == "__main__":

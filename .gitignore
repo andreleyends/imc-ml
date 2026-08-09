@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+datos_imc.csv
 node_modules/
 package-lock.json
 package.json

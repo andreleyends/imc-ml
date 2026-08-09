@@ -3,108 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de IMC con ML</title>
+    <title>Medidor de IMC con IA que aprende</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-1: #0f172a;
+            --bg-2: #1e293b;
+            --acento: #f59e0b;
+            --acento-2: #38bdf8;
+            --tinta: #0f172a;
+            --texto: #64748b;
+            --borde: #e2e8f0;
+            --claro: #f8fafc;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+            min-height: 100vh; padding: 32px 16px;
+        }
+        .contenedor {
+            max-width: 1100px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
         }
         .card {
-            background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 460px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+            background: #fff; border-radius: 20px; padding: 32px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.35);
         }
-        h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-        .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+        .card.left { position: sticky; top: 24px; }
+        h1 { font-size: 24px; font-weight: 800; color: var(--tinta); }
+        h2 { font-size: 18px; font-weight: 700; color: var(--tinta); }
+        .subtitle { color: var(--texto); font-size: 13.5px; margin: 4px 0 16px; }
         .badge-ml {
-            display: inline-block; background: #fbbf24; color: #78350f; padding: 6px 14px;
-            border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 20px;
+            display: inline-flex; align-items: center; gap: 6px; background: #fef3c7;
+            color: #92400e; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
         }
-        .campo { margin-bottom: 16px; }
-        .campo label { display: block; font-weight: 600; color: #374151; font-size: 14px; margin-bottom: 6px; }
+        .campo { margin-top: 16px; }
+        .campo label { display: block; font-weight: 600; color: #334155; font-size: 13.5px; margin-bottom: 6px; }
         .campo .input-group { display: flex; align-items: center; }
-        .campo input {
-            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
-            font-size: 16px; outline: none;
+        .campo input, .select-grupo select {
+            flex: 1; padding: 12px 14px; border: 2px solid var(--borde); border-radius: 10px;
+            font-size: 15px; outline: none; transition: border-color 0.15s;
         }
-        .campo input:focus { border-color: #f59e0b; }
-        .campo .unidad { margin-left: 10px; color: #6b7280; font-weight: 600; }
-        .select-grupo { display: flex; gap: 10px; margin-bottom: 16px; }
-        .select-grupo select {
-            flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
-            font-size: 15px; background: #fff; outline: none;
-        }
+        .campo input:focus, .select-grupo select:focus { border-color: var(--acento); }
+        .campo .unidad { margin-left: 10px; color: var(--texto); font-weight: 600; font-size: 13px; min-width: 52px; }
+        .select-grupo { display: flex; gap: 10px; margin-top: 12px; }
+        .select-grupo select { background: #fff; }
+        .ayuda { font-size: 12px; color: var(--texto); line-height: 1.5; margin-top: 10px; }
+        .botones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
         button {
-            width: 100%; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;
-            border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 700;
-            cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 18px;
+            border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(245,158,11,0.35); }
-        .resultado {
-            text-align: center; padding: 20px; border-radius: 14px; background: #f9fafb;
-            border: 1px solid #e5e7eb; display: none;
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-calcular { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+        .btn-calcular:hover { box-shadow: 0 10px 20px rgba(245,158,11,0.35); }
+        .btn-aprender { background: linear-gradient(135deg, #38bdf8, #0284c7); color: #fff; }
+        .btn-aprender:hover { box-shadow: 0 10px 20px rgba(56,189,248,0.35); }
+        .carga { font-size: 13px; color: var(--texto); text-align: center; margin-top: 12px; display: none; }
+        .nota { color: #059669; font-size: 13px; margin-top: 10px; display: none; text-align: center; background: #ecfdf5; padding: 10px; border-radius: 10px; }
+        .error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; text-align: center; background: #fef2f2; padding: 10px; border-radius: 10px; }
+        .resultado { display: none; animation: aparecer 0.25s ease; }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .hero-imc {
+            text-align: center; padding: 24px; border-radius: 16px;
+            background: linear-gradient(135deg, var(--claro), #f1f5f9); border: 1px solid var(--borde);
         }
-        .resultado .valor { font-size: 40px; font-weight: 800; }
-        .resultado .clasificacion { font-size: 17px; font-weight: 700; margin-top: 4px; }
-        .resultado .detalle { font-size: 13px; color: #6b7280; margin-top: 8px; }
-        .metricas {
-            margin-top: 16px; display: flex; gap: 12px;
+        .hero-imc .etiqueta { font-size: 13px; color: var(--texto); font-weight: 600; }
+        .valor { font-size: 48px; font-weight: 800; line-height: 1.1; }
+        .clasificacion { font-size: 18px; font-weight: 700; margin-top: 2px; }
+        .subvalor { font-size: 12.5px; color: var(--texto); margin-top: 6px; }
+        .confianza { margin-top: 16px; }
+        .confianza .fila { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+        .barra { height: 10px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .barra-fill { height: 100%; width: 0; border-radius: 10px; background: linear-gradient(90deg, #fbbf24, #f59e0b); transition: width 0.5s ease; }
+        .recomendaciones { margin-top: 20px; }
+        .recomendaciones h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .recomendaciones ul { list-style: none; }
+        .recomendaciones li {
+            display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px;
+            background: var(--claro); border: 1px solid var(--borde); border-radius: 10px; margin-bottom: 8px;
+            font-size: 13.5px; color: #334155; line-height: 1.45;
         }
-        .metrica { flex: 1; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 10px; text-align: center; }
-        .metrica .v { font-size: 18px; font-weight: 800; color: #92400e; }
-        .metrica .l { font-size: 11.5px; color: #92623e; margin-top: 2px; }
-        .error { color: #dc2626; font-size: 13px; margin-bottom: 12px; display: none; text-align: center; }
-        .carga { font-size: 13px; color: #6b7280; text-align: center; margin-bottom: 8px; display: none; }
+        .recomendaciones li .chk {
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+            width: 20px; height: 20px; border-radius: 50%; background: #ecfdf5; color: #059669; font-weight: 800; font-size: 12px;
+        }
+        .estado {
+            margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--borde);
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;
+        }
+        .metrica .v { font-size: 16px; font-weight: 800; color: #92400e; }
+        .metrica .l { font-size: 11px; color: var(--texto); margin-top: 2px; }
+        .aviso-inicial {
+            margin-top: 16px; background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+            padding: 12px; border-radius: 12px; font-size: 13px; text-align: center; font-weight: 500;
+        }
+        @media (max-width: 900px) {
+            .contenedor { grid-template-columns: 1fr; }
+            .card.left { position: static; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Calculadora de IMC</h1>
-        <p class="subtitle">Índice de Masa Corporal con <b>Machine Learning</b></p>
-        <span class="badge-major">🤖 Modelo de ML entrenado con datos</span>
+    <div class="contenedor">
+        <div class="card left">
+            <h1>Medidor de IMC con IA</h1>
+            <p class="subtitle">Un modelo que <b>aprende de cada usuario real</b>, no de muestras.</p>
+            <span class="badge-ml">🤖 Aprendizaje con datos reales</span>
 
-        <div class="campo">
-            <label for="peso">Peso</label>
-            <div class="input-group">
-                <input type="number" id="peso" step="0.1" placeholder="Ej: 70">
-                <span class="unidad">kg</span>
+            <div class="campo">
+                <label for="peso">Peso</label>
+                <div class="input-group">
+                    <input type="number" id="peso" step="0.1" placeholder="Ej: 70">
+                    <span class="unidad">kg</span>
+                </div>
             </div>
-        </div>
 
-        <div class="select-grupo">
-            <select id="unidadAltura">
-                <option value="cm">Centímetros (cm)</option>
-                <option value="m">Metros (m)</option>
-            </select>
-        </div>
-
-        <div class="campo">
-            <label for="altura">Altura</label>
-            <div class="input-group">
-                <input type="number" id="altura" step="0.01" placeholder="Ej: 175">
-                <span class="unidad" id="unidadLabel">cm</span>
+            <div class="select-grupo">
+                <select id="unidadAltura">
+                    <option value="cm">Centímetros (cm)</option>
+                    <option value="m">Metros (m)</option>
+                </select>
             </div>
+
+            <div class="campo">
+                <label for="altura">Altura</label>
+                <div class="input-group">
+                    <input type="number" id="altura" step="1" placeholder="Ej: 175">
+                    <span class="unidad" id="unidadLabel">cm</span>
+                </div>
+            </div>
+
+            <div class="campo">
+                <label for="imcReal">Tu IMC real (para enseñarle al modelo)</label>
+                <div class="input-group">
+                    <input type="number" id="imcReal" step="0.1" placeholder="Ej: 23.4">
+                    <span class="unidad">kg/m²</span>
+                </div>
+            </div>
+            <p class="ayuda">Calcula tu IMC real con tu médico (peso ÷ altura²) y compártelo: así la IA aprende y mejora sus predicciones.</p>
+
+            <div class="botones">
+                <button class="btn-calcular" id="btnCalcular">Calcular con IA</button>
+                <button class="btn-aprender" id="btnAprender">Enseñar al modelo</button>
+            </div>
+
+            <div class="carga" id="carga">Consultando al modelo...</div>
+            <div class="nota" id="nota"></div>
+            <div class="error" id="error"></div>
+
+            <div class="estado">
+                <div class="metrica"><div class="v" id="nDatos">{{ estado.ejemplos }}</div><div class="l">Datos</div></div>
+                <div class="metrica"><div class="v" id="r2">{{ estado.r2 if estado.r2 is not none else '—' }}</div><div class="l">R²</div></div>
+                <div class="metrica"><div class="v" id="rmse">{{ estado.rmse if estado.rmse is not none else '—' }}</div><div class="l">RMSE</div></div>
+                <div class="metrica"><div class="v" id="gConfianza">{{ estado.confianza if estado.confianza is not none else '—' }}</div><div class="l">Confianza</div></div>
+            </div>
+
+            {% if not estado.entrenado %}
+            <div class="aviso-inicial" id="avisoInicial">
+                El modelo aún no ha aprendido. Enséñale tu IMC real y luego calcula.
+            </div>
+            {% endif %}
         </div>
 
-        <button id="btnCalcular">Calcular con IA</button>
+        <div class="card result">
+            <div class="resultado" id="resultado">
+                <div class="hero-imc">
+                    <div class="etiqueta">Tu IMC estimado</div>
+                    <div class="valor" id="valor">—</div>
+                    <div class="clasificacion" id="clasificacion"></div>
+                    <div class="subvalor" id="detalle">Predicción generada por el modelo entrenado con usuarios reales.</div>
+                </div>
 
-        <div class="carga" id="carga">Calculando con el modelo de ML...</div>
-        <div class="error" id="error"></div>
+                <div class="confianza" id="bloqueConfianza" style="display:none;">
+                    <div class="fila"><span>Confianza de la predicción</span><span id="confianzaTexto"></span></div>
+                    <div class="barra"><div class="barra-fill" id="confianzaBarra"></div></div>
+                </div>
 
-        <div class="resultado" id="resultado">
-            <div class="valor" id="valor">—</div>
-            <div class="clasificacion" id="clasificacion"></div>
-            <div class="detalle" id="detalle">Predicción generada por el modelo de Machine Learning.</div>
-        </div>
+                <div class="recomendaciones" id="recomendaciones" style="display:none;">
+                    <h2>💡 <span id="recoTitulo">Recomendaciones</span></h2>
+                    <ul id="recoLista"></ul>
+                    <p style="font-size:11.5px;color:var(--texto);margin-top:10px;">
+                        Estas sugerencias son orientativas y no sustituyen el consejo de un profesional de la salud.
+                    </p>
+                </div>
+            </div>
 
-        <div class="metricas" id="containerMetrics">
-            <p style="font-size:12px;color:#6b7280;margin-bottom:6px;">Calidad del modelo (sobre datos de entrenamiento):</p>
-            <div class="metricas">
-                <div class="metrica"><div class="v" id="r2">{{ r2 }}</div><div class="l">R²</div></div>
-                <div class="metrica"><div class="v" id="rmse">{{ rmse }}</div><div class="l">RMSE</div></div>
+            <div style="display:none" id="placeholderResult">
+                <div style="text-align:center;padding:40px 10px;color:var(--texto);">
+                    <div style="font-size:44px;margin-bottom:12px;">📊</div>
+                    <div style="font-weight:700;color:var(--tinta);">Aún no hay resultados</div>
+                    <p style="font-size:13px;margin-top:6px;">Ingresa tu peso y altura y presiona<br>"Calcular con IA" para ver tu IMC, la<br>confianza del modelo y recomendaciones.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -117,52 +211,161 @@
         unidadAltura.addEventListener('change', () => {
             const esCm = unidadAltura.value === 'cm';
             unidadLabel.textContent = esCm ? 'cm' : 'm';
-            if (esCm) { alturaInput.step = '1'; alturaInput.placeholder = 'Ej: 175'; }
-            else { alturaInput.step = '0.01'; alturaInput.placeholder = 'Ej: 1.75'; }
+            alturaInput.step = esCm ? '1' : '0.01';
+            alturaInput.placeholder = esCm ? 'Ej: 175' : 'Ej: 1.75';
         });
 
-        document.getElementById('btnCalcular').addEventListener('click', calcular);
-
-        async function calcular() {
-            const errorBox = document.getElementById('error');
-            const carga = document.getElementById('carga');
-            errorBox.style.display = 'none';
-            carga.style.display = 'block';
-
+        function leerValores() {
             const peso = parseFloat(document.getElementById('peso').value.replace(',', '.'));
             let altura = parseFloat(alturaInput.value.replace(',', '.'));
+            const imcReal = parseFloat(document.getElementById('imcReal').value.replace(',', '.'));
+            if (document.getElementById('unidadAltura').value === 'cm' && !isNaN(altura)) altura = altura / 100;
+            return { peso, altura, imcReal };
+        }
 
+        function mostrarError(msg) {
+            excluirNota();
+            const e = document.getElementById('error');
+            e.textContent = msg;
+            e.style.display = 'block';
+        }
+
+        function ocultarError() { document.getElementById('error').style.display = 'none'; }
+
+        function excluirNota() { document.getElementById('nota').style.display = 'none'; }
+
+        function mostrarNota(msg) {
+            const n = document.getElementById('nota');
+            n.textContent = msg;
+            n.style.display = 'block';
+        }
+
+        function validar({ peso, altura }) {
             if (isNaN(peso) || isNaN(altura) || peso <= 0 || altura <= 0) {
-                carga.style.display = 'none';
-                errorBox.textContent = 'Ingresa valores válidos y mayores que 0.';
-                errorBox.style.display = 'block';
-                return;
+                mostrarError('Ingresa peso y altura válidos y mayores que 0.');
+                return false;
             }
-            if (document.getElementById('unidadAltura').value === 'cm') altura = altura / 100;
+            return true;
+        }
 
+        async function post(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return { status: res.status, data: await res.json() };
+        }
+
+        async function actualizarEstado() {
+            const res = await fetch('/api/estado');
+            const e = await res.json();
+            document.getElementById('nDatos').textContent = e.ejemplos;
+            document.getElementById('r2').textContent = e.r2 ?? '—';
+            document.getElementById('rmse').textContent = e.rmse ?? '—';
+            document.getElementById('gConfianza').textContent = e.confianza != null ? e.confianza : '—';
+            const aviso = document.getElementById('avisoInicial');
+            if (aviso) {
+                aviso.style.display = e.entrenado ? 'none' : 'block';
+                if (!e.entrenado) aviso.textContent = 'El modelo aún no ha aprendido. Enséñale tu IMC real y luego calcula.';
+            }
+        }
+
+        function colorBarra(conf) {
+            if (conf >= 75) return ['#059669', 'linear-gradient(90deg,#34d399,#10b981)'];
+            if (conf >= 50) return ['#d97706', 'linear-gradient(90deg,#fbbf24,#f59e0b)'];
+            return ['#dc2626', 'linear-gradient(90deg,#f87171,#ef4444)'];
+        }
+
+        async function calcular() {
+            const carga = document.getElementById('carga');
+            ocultarError(); excluirNota();
+            const { peso, altura } = leerValores();
+            if (!validar({ peso, altura })) return;
+
+            carga.style.display = 'block';
             try {
-                const res = await fetch('/api/calcular', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ peso, altura })
-                });
-                const data = await res.json();
+                const { status, data } = await post('/api/calcular', { peso, altura });
                 carga.style.display = 'none';
-                if (data.error) { errorBox.textContent = data.error; errorBox.style.display = 'block'; return; }
+                if (status !== 200) { mostrarError(data.error); return; }
 
                 document.getElementById('resultado').style.display = 'block';
+                document.getElementById('placeholderResult').style.display = 'none';
                 document.getElementById('valor').textContent = data.imc.toFixed(2);
                 document.getElementById('valor').style.color = data.color;
                 const cls = document.getElementById('clasificacion');
                 cls.textContent = data.clasificacion;
                 cls.style.color = data.color;
-                document.getElementById('detalle').textContent = `Predicción de ML usando peso ${peso} kg y altura ${altura.toFixed(2)} m.`;
+                document.getElementById('detalle').textContent =
+                    `Predicción de la IA usando ${peso} kg y ${altura.toFixed(2)} m.`;
+
+                const conf = data.confianza;
+                const bloque = document.getElementById('bloqueConfianza');
+                if (conf != null) {
+                    bloque.style.display = 'block';
+                    const [color, gradiente] = colorBarra(conf);
+                    document.getElementById('confianzaTexto').textContent = conf + '%';
+                    document.getElementById('confianzaTexto').style.color = color;
+                    setTimeout(() => {
+                        const b = document.getElementById('confianzaBarra');
+                        b.style.width = conf + '%';
+                        b.style.background = gradiente;
+                    }, 50);
+                } else {
+                    bloque.style.display = 'none';
+                }
+
+                const rec = data.recomendaciones;
+                if (rec && rec.items && rec.items.length) {
+                    document.getElementById('recomendaciones').style.display = 'block';
+                    document.getElementById('recoTitulo').textContent = rec.titulo;
+                    const lista = document.getElementById('recoLista');
+                    lista.innerHTML = '';
+                    rec.items.forEach(item => {
+                        const li = document.createElement('li');
+                        const chk = document.createElement('span');
+                        chk.className = 'chk';
+                        chk.textContent = '✓';
+                        li.appendChild(chk);
+                        li.appendChild(document.createTextNode(item));
+                        lista.appendChild(li);
+                    });
+                } else {
+                    document.getElementById('recomendaciones').style.display = 'none';
+                }
             } catch (e) {
                 carga.style.display = 'none';
-                errorBox.textContent = 'Error al conectar con el servidor de Python.';
-                errorBox.style.display = 'block';
+                mostrarError('Error al conectar con el servidor.');
             }
         }
+
+        async function aprender() {
+            const carga = document.getElementById('carga');
+            ocultarError(); excluirNota();
+            const { peso, altura, imcReal } = leerValores();
+            if (!validar({ peso, altura })) return;
+            if (isNaN(imcReal) || imcReal <= 0) {
+                mostrarError('Ingresa un IMC real válido y mayor que 0 para enseñarle al modelo.');
+                return;
+            }
+
+            carga.textContent = 'Enseñando al modelo...';
+            carga.style.display = 'block';
+            try {
+                const { data } = await post('/api/aprender', { peso, altura, imc_real: imcReal });
+                carga.style.display = 'none';
+                carga.textContent = 'Consultando al modelo...';
+                mostrarNota(data.mensaje);
+                await actualizarEstado();
+            } catch (e) {
+                carga.style.display = 'none';
+                carga.textContent = 'Consultando al modelo...';
+                mostrarError('Error al enseñarle al modelo.');
+            }
+        }
+
+        document.getElementById('btnCalcular').addEventListener('click', calcular);
+        document.getElementById('btnAprender').addEventListener('click', aprender);
     </script>
 </body>
 </html>
