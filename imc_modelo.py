@@ -13,8 +13,13 @@ X = None
 y = None
 
 
+def imc_formula(peso, altura):
+    """IMC real calculado con la fórmula estándar: peso / altura²."""
+    return peso / (altura ** 2)
+
+
 def cargar_ejemplos():
-    """Carga los ejemplos reales aprendidos de usuarios. Devuelve listas de peso, altura e imc real."""
+    """Carga los ejemplos aprendidos de usuarios. Devuelve listas de peso, altura e imc."""
     pesos, alturas, imcs = [], [], []
     if not os.path.exists(DATA_FILE):
         return pesos, alturas, imcs
@@ -39,12 +44,18 @@ def guardar_ejemplo(peso, altura, imc):
     with open(DATA_FILE, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if escribir_header:
-            writer.writerow(["peso", "altura", "imc_real"])
+            writer.writerow(["peso", "altura", "imc"])
         writer.writerow([peso, altura, imc])
 
 
+def aprender_de_uso(peso, altura):
+    """Guarda un ejemplo (el IMC real sale de la fórmula) y reentrena el modelo."""
+    guardar_ejemplo(peso, altura, imc_formula(peso, altura))
+    return entrenar()
+
+
 def entrenar():
-    """Entrena el modelo con los ejemplos reales guardados. Si no hay datos, el modelo queda vacío."""
+    """Entrena el modelo con los ejemplos guardados. Si no hay datos, el modelo queda vacío."""
     global modelo, X, y
     pesos, alturas, imcs = cargar_ejemplos()
     if not pesos:
@@ -77,7 +88,7 @@ def predecir_con_confianza(peso, altura):
     std = float(np.std(imcs))
     n = numero_ejemplos()
 
-    confianza_datos = min(n / 10.0, 1.0)
+    confianza_datos = np.clip((n / 20.0) ** 0.7, 0.0, 1.0)
     confianza_arboles = np.clip(1.0 - (std / max(abs(imc), 1e-6)) * 4.0, 0.0, 1.0)
     confianza = round(100 * confianza_datos * confianza_arboles)
     return imc, min(confianza, 99)
@@ -106,8 +117,8 @@ def confianza_global():
         return None
     n = numero_ejemplos()
     confianza_r2 = np.clip(max(r2, 0.0) * 100, 0, 95)
-    confianza_datos = min(n / 20.0, 1.0) * 100
-    return round(confianza_r2 * 0.6 + confianza_datos * 0.4)
+    confianza_datos = np.clip((n / 20.0) ** 0.7, 0.0, 1.0) * 100
+    return round(max(confianza_r2, 5) * 0.6 + confianza_datos * 0.4)
 
 
 RECOMENDACIONES = {

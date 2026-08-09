@@ -12,7 +12,7 @@ if entrenado_inicial:
     print(f"[ML] Modelo cargado con {imc_modelo.numero_ejemplos()} ejemplos reales. "
           f"R2={r2_i if r2_i is None else round(r2_i, 4)}, RMSE={rmse_i if rmse_i is None else round(rmse_i, 3)}")
 else:
-    print("[ML] El modelo aún no ha aprendido: esperando datos reales de usuarios.")
+    print("[ML] El modelo aún no ha aprendido: esperando el primer uso de la app.")
 
 
 def cargar_float(datos, clave):
@@ -55,42 +55,22 @@ def calcular():
     if not (peso and altura and peso > 0 and altura > 0):
         return jsonify({"error": "Ingresa peso y altura válidos y mayores que 0."}), 400
 
-    imc, confianza = imc_modelo.predecir_con_confianza(peso, altura)
-    if imc is None:
-        return jsonify({
-            "error": "El modelo aún no ha aprendido. Usa 'Enseñar al modelo' con tu IMC real para entrenarlo."
-        }), 409
+    # Aprende de este uso: el IMC real se obtiene con la fórmula clásica.
+    imc_modelo.aprender_de_uso(peso, altura)
 
+    imc, confianza = imc_modelo.predecir_con_confianza(peso, altura)
+    imc_real = imc_modelo.imc_formula(peso, altura)
     clas, color = imc_modelo.clasificar(imc)
     confianza = min(confianza, 99) if confianza is not None else None
     return jsonify({
         "imc": round(imc, 2),
+        "imc_real": round(imc_real, 2),
         "clasificacion": clas,
         "color": color,
         "confianza": confianza,
+        "ejemplos": imc_modelo.numero_ejemplos(),
         "recomendaciones": imc_modelo.recomendaciones(clas),
     })
-
-
-@app.route("/api/aprender", methods=["POST"])
-def aprender():
-    data = request.get_json(silent=True) or {}
-    peso = cargar_float(data, "peso")
-    altura = cargar_float(data, "altura")
-    imc_real = cargar_float(data, "imc_real")
-
-    if not (peso and altura and imc_real and peso > 0 and altura > 0 and imc_real > 0):
-        return jsonify({"error": "Ingresa peso, altura e IMC real válidos y mayores que 0."}), 400
-
-    imc_modelo.guardar_ejemplo(peso, altura, imc_real)
-    imc_modelo.entrenar()
-
-    r2, rmse = imc_modelo.metricas()
-    estado = estado_modelo()
-    estado["r2"] = round(r2, 4) if r2 is not None else None
-    estado["rmse"] = round(rmse, 3) if rmse is not None else None
-    estado["mensaje"] = "¡Dato aprendido! El modelo ahora sabe algo más sobre ti."
-    return jsonify(estado)
 
 
 if __name__ == "__main__":
